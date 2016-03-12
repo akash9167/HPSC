@@ -2,7 +2,7 @@
 #include<stdlib.h>
 #include<mpi.h>
 
-#define NPES 4
+#define NPES 2
 #define NR 1000
 #define NC 1000
 //int NR, NC;	

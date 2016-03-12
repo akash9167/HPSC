@@ -2,9 +2,9 @@
 #include<stdlib.h>
 #include<mpi.h>
 
-#define NPES 4
-#define NR 10000
-#define NC 10000
+#define NPES 1
+#define NR 1000
+#define NC 1000
 //int NR, NC;	
 void initialize(float a[NR][NC]);
 void print(float c[NR][NC]);
