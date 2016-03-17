@@ -2,17 +2,18 @@
 #include<stdlib.h>
 #include<mpi.h>
 
-#define NPES 1
-#define NR 1000
-#define NC 1000
+#define NPES 2
+#define NR 9800
+#define NC 9800
 //int NR, NC;	
-void initialize(float a[NR][NC]);
+void initialize_A(float a[NR][NC]);
+void initialize_B(float b[NR][NC]);
 void print(float c[NR][NC]);
 
 int main(int argc, char** argv){
 	
 //	scanf("%d",&NR);
-//	NC = NR;
+
 	float a[NR][NC];
 	float b[NR][NC];
 	float c[NR][NC];
@@ -61,8 +62,8 @@ int main(int argc, char** argv){
 		}
 		else{
 			//printf("YO\n");
-			initialize(a);	
-			initialize(b);
+			initialize_A(a);	
+			initialize_B(b);
 		}
 	}
 	
@@ -94,11 +95,20 @@ int main(int argc, char** argv){
 	return 0;
 }
 
-void initialize(float a[NR][NC]){
+void initialize_A(float a[NR][NC]){
 	int i,j;
 	for(i=0; i<NR; i++){
 		for(j=0; j<NC; j++){
 			a[i][j] = i+j;		
+		}
+	}
+}
+
+void initialize_B(float b[NR][NC]){
+	int i,j;
+	for(i=0; i<NR; i++){
+		for(j=0; j<NC; j++){
+			b[i][j] = i*j;		
 		}
 	}
 }
