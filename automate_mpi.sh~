@@ -5,5 +5,5 @@ do
 	find -type f -exec sed -i "s/\#define\ NR\ [0-9]*/\#define\ NR\ $i/g" {} \;
 	find -type f -exec sed -i "s/\#define\ NC\ [0-9]*/\#define\ NC\ $i/g" {} \;
 	mpicc -o mm_mpi matrix_multiplication_MPI.c;
-	(echo -n "For size $i " && mpirun -np 4 ./mm_mpi) >> mpi_time_4
+	(echo -n "For size $i " && mpirun -np 4 ./mm_mpi) >> mpi_time_2
 done
