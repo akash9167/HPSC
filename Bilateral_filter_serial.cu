@@ -1,16 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
-//#include <cuda.h>
-//#include <device_launch_parameters.h>
-//#include <cuda_runtime.h>
+#include <cuda.h>
+#include <device_launch_parameters.h>
+#include <cuda_runtime.h>
 #include <helper_functions.h>
 #include <helper_image.h>
 #include <helper_timer.h>
 #include <helper_cuda.h>
 #include <opencv2\opencv.hpp>
 #include <opencv2\highgui\highgui.hpp>
-#include <opencv2\core\core.hpp>
-#include <opencv2\highgui\highgui_c.h>
 
 using namespace cv;
 using namespace std;
@@ -33,7 +31,7 @@ __global__ void filter(uchar *d_data){
 }
 */
 int main(int argc, char** argv){
-	const Mat img = cv::imread("peppers.jpg",CV_LOAD_IMAGE_UNCHANGED);
+	const Mat img = cv::imread("scar1.jpg",CV_LOAD_IMAGE_UNCHANGED);
 	Mat img2 = img.clone();
 	Mat img3 = img.clone();
 
@@ -44,16 +42,55 @@ int main(int argc, char** argv){
 
 	else{
 		uchar *input = img.data;
-		const int rows =(const int)img.rows;
-		const int cols = (const int)img.cols;
-		const int step = img.step;
+
+		int rows = img.rows,
+			cols = img.cols,
+			step = img.step,
+			rows_d, cols_d, step_d;
+
 		int channels = img.channels();
 		std::cout<< cols <<" x "<<rows<<"Step Size: "<<step<<endl;
 		if(img.depth()==CV_8U) cout << "Unsigned char image" << endl;
 		std::cout<<"Number of channels: "<<img.channels()<<endl;
 		std::cout<<"Is data continuous: "<<img.isContinuous()<<endl;
-		//bilateralFilter(img, img2, 7, 10, 10);
+		size_t total_size = rows*cols*3*sizeof(uchar);
+		
+		uchar *input_d, *output_d;
+		
+		const unsigned int kr = 8;
+		const int ks = 2*kr+1;
+		double sigs=20;
+		double sigr=20;
+		double g[ks][ks],d[ks][ks],gdist[ks][ks];
+		uchar I[ks][ks], a[ks][ks];
+		uchar *input2 = img2.data;
+		
+		double norm_gdist=0;
 
+		for(int i=0; i<ks; i++){
+			for(int j=0; j<ks; j++){
+				d[i][j] = (kr-i)*(kr-i)+(kr-j)*(kr-j);
+				float den = 1/(sigs*sqrt(2*3.142));
+				float exp_=-d[i][j]/(2*sigs*sigs);
+				gdist[i][j]=den*exp(exp_);
+				norm_gdist += gdist[i][j];
+				//cout<<d[i][j]<<"   ";
+			}
+			//cout<<endl;
+		}
+/*
+		cudaMemcpy(input_d, input, total_size,cudaMemcpyHostToDevice);
+		cudaMemcpy(&rows_d, &rows, sizeof(int),cudaMemcpyHostToDevice);
+		cudaMemcpy(&cols_d, &cols, sizeof(int),cudaMemcpyHostToDevice);
+		cudaMemcpy(&step_d, &step, sizeof(int),cudaMemcpyHostToDevice);
+		
+		cudaMalloc((void**)input_d,	total_size);
+		cudaMalloc((void**)rows_d,	sizeof(int));
+		cudaMalloc((void**)cols_d,	sizeof(int));
+		cudaMalloc((void**)step_d,	sizeof(int));
+		cudaMalloc((void**)output_d,total_size);
+		cudaMalloc((void**)output_d,total_size);
+*/
 /*
 		uchar * d_data;
 		unsigned int size = channels*rows*cols*sizeof(uchar);
@@ -79,31 +116,6 @@ int main(int argc, char** argv){
 		//cudaMemcpy(img.data, d_data, size, cudaMemcpyDeviceToHost);
 		
 */
-		const unsigned int kr = 7;
-		const int ks = 2*kr+1;
-		double sigs=9;
-		double sigr=9;
-		double g[ks][ks],d[ks][ks],gdist[ks][ks];
-		uchar I[ks][ks], a[ks][ks];
-		uchar *input2 = img2.data;
-		//unsigned char *input4 = (unsigned char*)(img4.data);
-		double norm_gdist=0;
-		for(int i=0; i<ks; i++){
-			for(int j=0; j<ks; j++){
-				d[i][j] = (kr-i)*(kr-i)+(kr-j)*(kr-j);
-				//cout<<d[i][j]<<"   ";
-			}
-			//cout<<endl;
-		}
-		
-		for(int i=0; i<ks;i++){
-			for(int j=0;j<ks;j++){
-				gdist[i][j]=(1/(sigs*sqrt(2*3.142)))*exp(-d[i][j]/(2*sigs*sigs));
-				norm_gdist += gdist[i][j];
-				//cout<<gdist[i][j]<<"   ";
-			}
-			//cout<<endl;
-		}
 			
 			int l=rows*step;
 /*		
@@ -120,9 +132,18 @@ int main(int argc, char** argv){
 			int y=(i/step);
 			for(int p=0; p<kr; p++){
 				for(int q=0; q<kr; q++){
-					if(x-channels*q<0 || y-p<0 || x+channels*q>=l || y+p>=l){
-						I[p][q]=input[i];
-						a[p][q]=0;
+					if(x-channels*q<0 || y-p<0 || x+channels*q>=l || y+p>=l || i+p*step+channels*q>=l ||i+p*step-channels*q>=l||i-p*step+channels*q>=l){
+						I[kr+p][kr+q]=input[i];
+						a[kr+p][kr+q]=0;
+
+						I[kr-p][kr+q]=input[i];
+						a[kr-p][kr+q]=0;
+
+						I[kr+p][kr-q]=input[i];
+						a[kr+p][kr-q]=0;
+
+						I[kr-p][kr-q]=input[i];
+						a[kr-p][kr-q]=0;
 						}
 
 						else{
